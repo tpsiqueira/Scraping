@@ -80,7 +80,7 @@ def scrape_stargazers():
 
 scrape_stargazers()
 
-# Converte e salva Excel
+# Converte salva Excel
 output_path = r"C:\Users\Public\scraping.xlsx"
 df = pd.DataFrame(data)
 df.to_excel(output_path, index=False)
