@@ -2,9 +2,13 @@ import requests
 from bs4 import BeautifulSoup
 import pandas as pd
 import time
+import urllib3
+
+
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # Entrar coma URL
-base_url = "https://github.com/petrobras/GeoSlicer/stargazers"
+base_url = "https://github.com/petrobras/ccp/stargazers"
 
 data = []
 
@@ -14,7 +18,7 @@ def scrape_stargazers():
     while True:
         # Add número da página na URL
         url = f"{base_url}?page={page}"        
-        response = requests.get(url)
+        response = requests.get(url, verify=False)
 
         # Verifica a página existente
         if response.status_code != 200:
@@ -27,7 +31,7 @@ def scrape_stargazers():
         # Localiza os elementos 
         stargazers = soup.find_all("a", class_="d-inline-block")
 
-        # Se perfis=0 , finaliza loop
+        # Se perfis=0, finalizar loop
         if not stargazers:
             break
 
@@ -38,7 +42,7 @@ def scrape_stargazers():
             profile_link = f"https://github.com{stargazer['href']}"
 
             # Requisição página do perfil
-            profile_response = requests.get(profile_link)
+            profile_response = requests.get(profile_link, verify=False)  # Desabilitar SSL
             if profile_response.status_code == 200:
                 profile_soup = BeautifulSoup(profile_response.text, "html.parser")
 
@@ -74,13 +78,13 @@ def scrape_stargazers():
 
                 data.append(dados)
           
-            time.sleep(1)
+            time.sleep(2)
         
         page += 1
 
 scrape_stargazers()
 
-# Converte salva Excel
+# Converte/salva Excel
 output_path = r"C:\Users\Public\scraping.xlsx"
 df = pd.DataFrame(data)
 df.to_excel(output_path, index=False)
