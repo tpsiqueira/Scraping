@@ -1,9 +1,26 @@
 import requests
 import pandas as pd
+from opencage.geocoder import OpenCageGeocode
 
 # Bypass SSL warnings
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
+
+# Configuração da API do OpenCage
+API_KEY = '035ef8874cb844c6a0bc3a6e147a93b6'
+geocoder = OpenCageGeocode(API_KEY)
+
+# Função para obter o país a partir da localização
+def obter_pais(location):
+    try:
+        resultado = geocoder.geocode(location)
+        if resultado:
+            return resultado[0]['components'].get('country', 'País não encontrado')
+        else:
+            return 'País não encontrado'
+    except Exception as e:
+        print(f"Erro ao processar a localização '{location}': {e}")
+        return 'Erro ao obter país'
 
 # Função para obter informações detalhadas do usuário
 def obter_informacoes_usuario(user_url, headers):
@@ -14,7 +31,7 @@ def obter_informacoes_usuario(user_url, headers):
         print(f"Erro ao acessar informações do usuário: {response.status_code}")
         return {}
 
-# Função para obter os stargazers de um repositório
+# Função para obter stargazers e adicionar país
 def obter_stargazers(owner, repo, token=None):
     url = f"https://api.github.com/repos/{owner}/{repo}/stargazers"
     headers = {
@@ -38,18 +55,21 @@ def obter_stargazers(owner, repo, token=None):
 
         for item in data:
             user_info = obter_informacoes_usuario(item["user"]["url"], headers)
+            localizacao = user_info.get("location", "")
+            pais = obter_pais(localizacao) if localizacao else "Localização não informada"
             stargazers.append({
                 "Usuário": item["user"]["login"],
+                "URL Perfil": item["user"]["html_url"],
                 "Nome": user_info.get("name"),
                 "Empresa": user_info.get("company"),
-                "Localização": user_info.get("location"),
-                "URL Perfil": item["user"]["html_url"],            
+                "Localização": localizacao,
+                "País": pais,
             })
         page += 1
 
     return stargazers
 
-# Função para obter os forks de um repositório
+# Função para obter forks e adicionar país
 def obter_forks(owner, repo, token=None):
     url = f"https://api.github.com/repos/{owner}/{repo}/forks"
     headers = {
@@ -73,13 +93,16 @@ def obter_forks(owner, repo, token=None):
 
         for item in data:
             user_info = obter_informacoes_usuario(item["owner"]["url"], headers)
+            localizacao = user_info.get("location", "")
+            pais = obter_pais(localizacao) if localizacao else "Localização não informada"
             forks.append({
                 "Usuário": item["owner"]["login"],
                 "URL Perfil": item["owner"]["html_url"],
                 "Nome": user_info.get("name"),
                 "Empresa": user_info.get("company"),
-                "Localização": user_info.get("location"),
+                "Localização": localizacao,
                 "URL Repositório": item["html_url"],
+                "País": pais,
             })
         page += 1
 
@@ -90,7 +113,7 @@ owner = "petrobras"
 repo = "3W"
 
 # Token de autenticação
-token = "XXX"
+token = "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"
 
 # Obter os stargazers e forks
 stargazers = obter_stargazers(owner, repo, token)
