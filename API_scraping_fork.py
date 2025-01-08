@@ -51,7 +51,7 @@ owner = "petrobras"
 repo = "3W"
 
 # Token de autenticação
-token = "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"
+token = "XXX"
 
 # Obter os forks
 forks = obter_forks(owner, repo, token)

@@ -50,7 +50,7 @@ owner = "petrobras"
 repo = "3W"
 
 # Token de autenticação
-token = "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"
+token = "XXX"
 
 # Obter os stargazers
 stargazers = obter_stargazers(owner, repo, token)
