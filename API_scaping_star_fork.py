@@ -7,7 +7,7 @@ from requests.packages.urllib3.exceptions import InsecureRequestWarning
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 # Configuração da API do OpenCage
-API_KEY = '035ef8874cb844c6a0bc3a6e147a93b6'
+API_KEY = 'xxxx'
 geocoder = OpenCageGeocode(API_KEY)
 
 # Função para obter o país a partir da localização
@@ -113,7 +113,7 @@ owner = "petrobras"
 repo = "3W"
 
 # Token de autenticação
-token = "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"
+token = "xxxx"
 
 # Obter os stargazers e forks
 stargazers = obter_stargazers(owner, repo, token)
