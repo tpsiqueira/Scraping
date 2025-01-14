@@ -7,12 +7,33 @@ from requests.packages.urllib3.exceptions import InsecureRequestWarning
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 # Configuração da API do OpenCage
-API_KEY = 'xxxx'
+API_KEY = 'XXX'
 geocoder = OpenCageGeocode(API_KEY)
 
-# Função para obter o país a partir da localização
+# Função para obter o país a partir da localização com ajustes manuais
 def obter_pais(location):
     try:
+        location = location.strip().lower()
+
+        # Correções manuais para locais conhecidos
+        ajustes = {
+            "salvador": "Brazil",
+            "online": "UNINFORMED",
+            "earth": "UNINFORMED",
+            "vitória-es": "Brazil",
+            "florianópolis - sc": "Brazil",
+            "brazil, florianópolis - sc": "Brazil",
+            "imperatriz - ma": "Brazil",
+            "coelho neto - ma": "Brazil",
+            "369.0.0.1/963": "UNINFORMED",
+        }
+
+        if location in ajustes:
+            return ajustes[location]
+
+        session = requests.Session()
+        session.verify = False  # Ignorar verificação SSL
+        geocoder.session = session  # Definir sessão personalizada para o OpenCage
         resultado = geocoder.geocode(location)
         if resultado:
             return resultado[0]['components'].get('country', 'País não encontrado')
@@ -24,11 +45,15 @@ def obter_pais(location):
 
 # Função para obter informações detalhadas do usuário
 def obter_informacoes_usuario(user_url, headers):
-    response = requests.get(user_url, headers=headers, verify=False)
-    if response.status_code == 200:
-        return response.json()
-    else:
-        print(f"Erro ao acessar informações do usuário: {response.status_code}")
+    try:
+        response = requests.get(user_url, headers=headers, verify=False)
+        if response.status_code == 200:
+            return response.json()
+        else:
+            print(f"Erro ao acessar informações do usuário: {response.status_code}")
+            return {}
+    except Exception as e:
+        print(f"Erro ao acessar informações do usuário: {e}")
         return {}
 
 # Função para obter stargazers e adicionar país
@@ -56,7 +81,7 @@ def obter_stargazers(owner, repo, token=None):
         for item in data:
             user_info = obter_informacoes_usuario(item["user"]["url"], headers)
             localizacao = user_info.get("location", "")
-            pais = obter_pais(localizacao) if localizacao else "Localização não informada"
+            pais = obter_pais(localizacao) if localizacao else "UNINFORMED"
             stargazers.append({
                 "Usuário": item["user"]["login"],
                 "URL Perfil": item["user"]["html_url"],
@@ -69,15 +94,9 @@ def obter_stargazers(owner, repo, token=None):
 
     return stargazers
 
-# Função para obter forks e adicionar país
-def obter_forks(owner, repo, token=None):
+# Função para obter forks e sub-forks
+def obter_forks(owner, repo, headers, token=None):
     url = f"https://api.github.com/repos/{owner}/{repo}/forks"
-    headers = {
-        "Accept": "application/vnd.github.v3+json",
-    }
-    if token:
-        headers["Authorization"] = f"token {token}"
-
     forks = []
     page = 1
 
@@ -94,16 +113,20 @@ def obter_forks(owner, repo, token=None):
         for item in data:
             user_info = obter_informacoes_usuario(item["owner"]["url"], headers)
             localizacao = user_info.get("location", "")
-            pais = obter_pais(localizacao) if localizacao else "Localização não informada"
+            pais = obter_pais(localizacao) if localizacao else "UNINFORMED"
             forks.append({
                 "Usuário": item["owner"]["login"],
                 "URL Perfil": item["owner"]["html_url"],
                 "Nome": user_info.get("name"),
                 "Empresa": user_info.get("company"),
                 "Localização": localizacao,
-                "URL Repositório": item["html_url"],
                 "País": pais,
+                "Repo Fork": item["html_url"]
             })
+
+            # Buscar sub-forks
+            forks += obter_forks(item["owner"]["login"], item["name"], headers)
+
         page += 1
 
     return forks
@@ -113,11 +136,15 @@ owner = "petrobras"
 repo = "3W"
 
 # Token de autenticação
-token = "xxxx"
+token = "XXX"
+headers = {
+    "Accept": "application/vnd.github.v3+json",
+    "Authorization": f"token {token}"
+}
 
 # Obter os stargazers e forks
 stargazers = obter_stargazers(owner, repo, token)
-forks = obter_forks(owner, repo, token)
+forks = obter_forks(owner, repo, headers)
 
 # Gerar arquivo Excel
 caminho_excel = r"C:\\Users\\Public\\API_stargazers_forks.xlsx"
